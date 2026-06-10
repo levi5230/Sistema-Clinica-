@@ -1,0 +1,64 @@
+package com.clinica.model;
+
+import java.time.LocalDateTime;
+
+/**
+ * MODEL — representa uma consulta/agendamento.
+ */
+public class Consulta {
+
+    // Constantes para os status possíveis
+    public static final String STATUS_AGENDADA   = "AGENDADA";
+    public static final String STATUS_CONFIRMADA = "CONFIRMADA";
+    public static final String STATUS_REALIZADA  = "REALIZADA";
+    public static final String STATUS_CANCELADA  = "CANCELADA";
+
+    private int           id;
+    private Paciente      paciente;
+    private Medico        medico;
+    private LocalDateTime dataHora;
+    private String        status;
+    private String        observacoes;
+    private String        motivoCancelamento;
+
+    public Consulta() {}
+
+    public Consulta(int id, Paciente paciente, Medico medico,
+                    LocalDateTime dataHora, String status, String observacoes) {
+        this.id          = id;
+        this.paciente    = paciente;
+        this.medico      = medico;
+        this.dataHora    = dataHora;
+        this.status      = status;
+        this.observacoes = observacoes;
+    }
+
+    public int getId()                              { return id; }
+    public void setId(int id)                       { this.id = id; }
+
+    public Paciente getPaciente()                   { return paciente; }
+    public void setPaciente(Paciente paciente)      { this.paciente = paciente; }
+
+    public Medico getMedico()                       { return medico; }
+    public void setMedico(Medico medico)            { this.medico = medico; }
+
+    public LocalDateTime getDataHora()                      { return dataHora; }
+    public void setDataHora(LocalDateTime dataHora)         { this.dataHora = dataHora; }
+
+    public String getStatus()                       { return status; }
+    public void setStatus(String status)            { this.status = status; }
+
+    public String getObservacoes()                  { return observacoes; }
+    public void setObservacoes(String observacoes)  { this.observacoes = observacoes; }
+
+    public String getMotivoCancelamento()                       { return motivoCancelamento; }
+    public void setMotivoCancelamento(String motivo)            { this.motivoCancelamento = motivo; }
+
+    @Override
+    public String toString() {
+        return "Consulta #" + id + " | " + paciente.getNome()
+                + " com " + medico.getNome()
+                + " em " + dataHora
+                + " [" + status + "]";
+    }
+}
