@@ -1,0 +1,150 @@
+package com.clinica.dao;
+
+import com.clinica.connection.ConexaoDB;
+import com.clinica.model.Consulta;
+import com.clinica.model.Medico;
+import com.clinica.model.Paciente;
+import com.clinica.model.Prontuario;
+
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * DAO — concentra todo o código JDBC para a entidade Prontuario.
+ */
+public class ProntuarioDAO implements DAOGenerico<Prontuario> {
+
+    private Connection conn;
+
+    public ProntuarioDAO() {
+        this.conn = ConexaoDB.getConexao();
+    }
+
+    @Override
+    public void inserir(Prontuario pr) {
+        String sql = "INSERT INTO prontuarios (consulta_id, medico_id, diagnostico, prescricao, observacoes) VALUES (?,?,?,?,?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, pr.getConsulta().getId());
+            ps.setInt(2, pr.getMedico().getId());
+            ps.setString(3, pr.getDiagnostico());
+            ps.setString(4, pr.getPrescricao());
+            ps.setString(5, pr.getObservacoes());
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Erro ao inserir prontuário: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void atualizar(Prontuario pr) {
+        String sql = "UPDATE prontuarios SET diagnostico=?, prescricao=?, observacoes=? WHERE id=?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, pr.getDiagnostico());
+            ps.setString(2, pr.getPrescricao());
+            ps.setString(3, pr.getObservacoes());
+            ps.setInt(4, pr.getId());
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Erro ao atualizar prontuário: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void deletar(int id) {
+        String sql = "DELETE FROM prontuarios WHERE id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Erro ao deletar prontuário: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public Prontuario buscarPorId(int id) {
+        String sql = buildSelect() + " WHERE pr.id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return mapear(rs);
+        } catch (SQLException e) {
+            System.err.println("Erro ao buscar prontuário: " + e.getMessage());
+        }
+        return null;
+    }
+
+    /** Busca prontuário pela consulta */
+    public Prontuario buscarPorConsulta(int consultaId) {
+        String sql = buildSelect() + " WHERE pr.consulta_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, consultaId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return mapear(rs);
+        } catch (SQLException e) {
+            System.err.println("Erro ao buscar prontuário por consulta: " + e.getMessage());
+        }
+        return null;
+    }
+
+    /** Lista todos os prontuários de um paciente */
+    public List<Prontuario> listarPorPaciente(int pacienteId) {
+        List<Prontuario> lista = new ArrayList<>();
+        String sql = buildSelect() + " WHERE c.paciente_id = ? ORDER BY pr.criado_em DESC";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, pacienteId);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) lista.add(mapear(rs));
+        } catch (SQLException e) {
+            System.err.println("Erro ao listar prontuários: " + e.getMessage());
+        }
+        return lista;
+    }
+
+    @Override
+    public List<Prontuario> listarTodos() {
+        List<Prontuario> lista = new ArrayList<>();
+        String sql = buildSelect() + " ORDER BY pr.criado_em DESC";
+        try (PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) lista.add(mapear(rs));
+        } catch (SQLException e) {
+            System.err.println("Erro ao listar prontuários: " + e.getMessage());
+        }
+        return lista;
+    }
+
+    private String buildSelect() {
+        return "SELECT pr.*, c.data_hora, c.paciente_id, c.medico_id, " +
+               "p.nome AS pac_nome, m.nome AS med_nome " +
+               "FROM prontuarios pr " +
+               "JOIN consultas c  ON pr.consulta_id = c.id " +
+               "JOIN pacientes p  ON c.paciente_id  = p.id " +
+               "JOIN medicos m    ON pr.medico_id    = m.id";
+    }
+
+    private Prontuario mapear(ResultSet rs) throws SQLException {
+        Paciente p = new Paciente();
+        p.setId(rs.getInt("paciente_id"));
+        p.setNome(rs.getString("pac_nome"));
+
+        Medico m = new Medico();
+        m.setId(rs.getInt("medico_id"));
+        m.setNome(rs.getString("med_nome"));
+
+        Consulta c = new Consulta();
+        c.setId(rs.getInt("consulta_id"));
+        c.setPaciente(p);
+        c.setMedico(m);
+        c.setDataHora(rs.getTimestamp("data_hora").toLocalDateTime());
+
+        Prontuario pr = new Prontuario();
+        pr.setId(rs.getInt("id"));
+        pr.setConsulta(c);
+        pr.setMedico(m);
+        pr.setDiagnostico(rs.getString("diagnostico"));
+        pr.setPrescricao(rs.getString("prescricao"));
+        pr.setObservacoes(rs.getString("observacoes"));
+        return pr;
+    }
+}
