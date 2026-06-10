@@ -1,0 +1,99 @@
+package com.clinica.view.forms;
+
+import com.clinica.controller.UsuarioController;
+import com.clinica.model.Usuario;
+
+import javax.swing.*;
+import java.awt.*;
+
+/**
+ * VIEW — Tela de Login do sistema.
+ */
+public class TelaLogin extends JFrame {
+
+    private JTextField     campoLogin;
+    private JPasswordField campoSenha;
+    private JButton        btnEntrar;
+    private JLabel         lblMensagem;
+
+    private UsuarioController controller;
+
+    public TelaLogin() {
+        controller = new UsuarioController();
+        configurarJanela();
+        construirComponentes();
+    }
+
+    private void configurarJanela() {
+        setTitle("Clínica Médica — Login");
+        setSize(420, 300);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+        setResizable(false);
+    }
+
+    private void construirComponentes() {
+        JPanel painel = new JPanel(new GridBagLayout());
+        painel.setBackground(new Color(245, 245, 245));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(8, 10, 8, 10);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        JLabel titulo = new JLabel("Sistema de Gestão de Clínica Médica", SwingConstants.CENTER);
+        titulo.setFont(new Font("Arial", Font.BOLD, 14));
+        titulo.setForeground(new Color(30, 100, 180));
+        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2;
+        painel.add(titulo, gbc);
+
+        gbc.gridwidth = 1; gbc.gridy = 1; gbc.gridx = 0;
+        painel.add(new JLabel("Utilizador:"), gbc);
+
+        campoLogin = new JTextField(15);
+        gbc.gridx = 1;
+        painel.add(campoLogin, gbc);
+
+        gbc.gridy = 2; gbc.gridx = 0;
+        painel.add(new JLabel("Senha:"), gbc);
+
+        campoSenha = new JPasswordField(15);
+        gbc.gridx = 1;
+        painel.add(campoSenha, gbc);
+
+        btnEntrar = new JButton("Entrar");
+        btnEntrar.setBackground(new Color(30, 100, 180));
+        btnEntrar.setForeground(Color.WHITE);
+        btnEntrar.setFont(new Font("Arial", Font.BOLD, 13));
+        gbc.gridy = 3; gbc.gridx = 0; gbc.gridwidth = 2;
+        painel.add(btnEntrar, gbc);
+
+        lblMensagem = new JLabel("", SwingConstants.CENTER);
+        lblMensagem.setForeground(Color.RED);
+        gbc.gridy = 4;
+        painel.add(lblMensagem, gbc);
+
+        btnEntrar.addActionListener(e -> realizarLogin());
+        campoSenha.addActionListener(e -> realizarLogin());
+
+        add(painel);
+    }
+
+    private void realizarLogin() {
+        String login = campoLogin.getText().trim();
+        String senha = new String(campoSenha.getPassword());
+
+        if (login.isEmpty() || senha.isEmpty()) {
+            lblMensagem.setText("Preencha todos os campos.");
+            return;
+        }
+
+        Usuario usuario = controller.autenticar(login, senha);
+
+        if (usuario != null) {
+            dispose();
+            new TelaPrincipal(usuario).setVisible(true);
+        } else {
+            lblMensagem.setText("Utilizador ou senha incorrectos.");
+            campoSenha.setText("");
+        }
+    }
+}
