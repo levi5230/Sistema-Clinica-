@@ -1,0 +1,12 @@
+package com.clinica.controller;
+
+import com.clinica.dao.UsuarioDAO;
+import com.clinica.model.Usuario;
+
+public class UsuarioController {
+    private UsuarioDAO dao = new UsuarioDAO();
+
+    public Usuario autenticar(String login, String senha) {
+        return dao.autenticar(login, senha);
+    }
+}
