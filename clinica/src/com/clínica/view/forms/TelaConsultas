@@ -1,0 +1,129 @@
+package com.clinica.view.forms;
+
+import com.clinica.controller.ConsultaController;
+import com.clinica.model.Consulta;
+import com.clinica.model.Usuario;
+
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.util.List;
+
+/**
+ * VIEW — Tela de Gestão de Consultas/Agendamentos.
+ */
+public class TelaConsultas extends JFrame {
+
+    private JTable              tabela;
+    private DefaultTableModel   modeloTabela;
+    private ConsultaController  controller;
+    private Usuario             usuarioLogado;
+
+    public TelaConsultas(Usuario usuario) {
+        this.usuarioLogado = usuario;
+        this.controller    = new ConsultaController();
+        configurarJanela();
+        construirComponentes();
+        carregarTabela();
+    }
+
+    private void configurarJanela() {
+        setTitle("Gestão de Consultas");
+        setSize(950, 520);
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    }
+
+    private void construirComponentes() {
+        JPanel painel = new JPanel(new BorderLayout(10, 10));
+        painel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JPanel painelTopo = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JButton btnNovo      = new JButton("Agendar");
+        JButton btnEditar    = new JButton("Editar");
+        JButton btnCancelar  = new JButton(" Cancelar");
+        JButton btnAtualizar = new JButton("Actualizar");
+
+        btnNovo.addActionListener(e -> abrirFormulario(null));
+        btnEditar.addActionListener(e -> editarSelecionado());
+        btnCancelar.addActionListener(e -> cancelarSelecionado());
+        btnAtualizar.addActionListener(e -> carregarTabela());
+
+        painelTopo.add(btnNovo);
+        painelTopo.add(btnEditar);
+        painelTopo.add(btnCancelar);
+        painelTopo.add(btnAtualizar);
+
+        String[] colunas = {"ID", "Paciente", "Médico", "Especialidade", "Data/Hora", "Status"};
+        modeloTabela = new DefaultTableModel(colunas, 0) {
+            public boolean isCellEditable(int r, int c) { return false; }
+        };
+        tabela = new JTable(modeloTabela);
+        tabela.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        tabela.getColumnModel().getColumn(0).setMaxWidth(50);
+        tabela.getColumnModel().getColumn(5).setPreferredWidth(100);
+
+        // Colorir linhas por status
+        tabela.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
+            public Component getTableCellRendererComponent(JTable t, Object v, boolean sel, boolean foc, int r, int c) {
+                Component comp = super.getTableCellRendererComponent(t, v, sel, foc, r, c);
+                String status = (String) modeloTabela.getValueAt(r, 5);
+                if (!sel) {
+                    switch (status) {
+                        case "REALIZADA"  -> comp.setBackground(new Color(212, 237, 218));
+                        case "CANCELADA"  -> comp.setBackground(new Color(248, 215, 218));
+                        case "CONFIRMADA" -> comp.setBackground(new Color(209, 236, 241));
+                        default           -> comp.setBackground(Color.WHITE);
+                    }
+                }
+                return comp;
+            }
+        });
+
+        painel.add(painelTopo, BorderLayout.NORTH);
+        painel.add(new JScrollPane(tabela), BorderLayout.CENTER);
+        add(painel);
+    }
+
+    private void carregarTabela() {
+        modeloTabela.setRowCount(0);
+        List<Consulta> lista = controller.listarTodos();
+        for (Consulta c : lista) {
+            modeloTabela.addRow(new Object[]{
+                c.getId(),
+                c.getPaciente().getNome(),
+                c.getMedico().getNome(),
+                c.getMedico().getEspecialidade(),
+                c.getDataHora(),
+                c.getStatus()
+            });
+        }
+    }
+
+    private void abrirFormulario(Consulta consulta) {
+        FormConsulta form = new FormConsulta(this, consulta, controller);
+        form.setVisible(true);
+        carregarTabela();
+    }
+
+    private void editarSelecionado() {
+        int linha = tabela.getSelectedRow();
+        if (linha < 0) { JOptionPane.showMessageDialog(this, "Seleccione uma consulta."); return; }
+        int id = (int) modeloTabela.getValueAt(linha, 0);
+        abrirFormulario(controller.buscarPorId(id));
+    }
+
+    private void cancelarSelecionado() {
+        int linha = tabela.getSelectedRow();
+        if (linha < 0) { JOptionPane.showMessageDialog(this, "Seleccione uma consulta."); return; }
+        String status = (String) modeloTabela.getValueAt(linha, 5);
+        if (status.equals("CANCELADA")) { JOptionPane.showMessageDialog(this, "Consulta já cancelada."); return; }
+
+        String motivo = JOptionPane.showInputDialog(this, "Motivo do cancelamento:");
+        if (motivo != null && !motivo.trim().isEmpty()) {
+            int id = (int) modeloTabela.getValueAt(linha, 0);
+            controller.cancelar(id, motivo);
+            carregarTabela();
+        }
+    }
+}
