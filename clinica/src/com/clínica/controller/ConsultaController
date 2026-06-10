@@ -1,0 +1,24 @@
+package com.clinica.controller;
+
+import com.clinica.dao.ConsultaDAO;
+import com.clinica.model.Consulta;
+import java.time.LocalDateTime;
+import java.util.List;
+
+public class ConsultaController {
+    private ConsultaDAO dao = new ConsultaDAO();
+
+    public void agendar(Consulta c)      { dao.inserir(c); }
+    public void atualizar(Consulta c)    { dao.atualizar(c); }
+    public void cancelar(int id, String motivo) { dao.cancelar(id, motivo); }
+    public Consulta buscarPorId(int id)  { return dao.buscarPorId(id); }
+    public List<Consulta> listarTodos()  { return dao.listarTodos(); }
+
+    public boolean existeConflito(int medicoId, LocalDateTime dataHora, int idIgnorar) {
+        return dao.existeConflito(medicoId, dataHora, idIgnorar);
+    }
+
+    public List<Consulta> listarPorMedicoEPeriodo(int medicoId, LocalDateTime inicio, LocalDateTime fim) {
+        return dao.listarPorMedicoEPeriodo(medicoId, inicio, fim);
+    }
+}
