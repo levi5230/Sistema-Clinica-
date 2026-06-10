@@ -1,0 +1,101 @@
+package com.clinica.view.forms;
+
+import com.clinica.model.Usuario;
+
+import javax.swing.*;
+import java.awt.*;
+
+/**
+ * VIEW — Menu principal após login.
+ * Mostra opções conforme o perfil do utilizador.
+ */
+public class TelaPrincipal extends JFrame {
+
+    private Usuario usuarioLogado;
+
+    public TelaPrincipal(Usuario usuario) {
+        this.usuarioLogado = usuario;
+        configurarJanela();
+        construirComponentes();
+    }
+
+    private void configurarJanela() {
+        setTitle("Clínica Médica — Menu Principal");
+        setSize(700, 500);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+    }
+
+    private void construirComponentes() {
+        // Painel principal
+        JPanel painelPrincipal = new JPanel(new BorderLayout());
+
+        // Cabeçalho
+        JPanel cabecalho = new JPanel(new BorderLayout());
+        cabecalho.setBackground(new Color(30, 100, 180));
+        cabecalho.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
+
+        JLabel lblTitulo = new JLabel("Sistema de Gestão de Clínica Médica");
+        lblTitulo.setFont(new Font("Arial", Font.BOLD, 16));
+        lblTitulo.setForeground(Color.WHITE);
+
+        JLabel lblUsuario = new JLabel("Utilizador: " + usuarioLogado.getNome() + " [" + usuarioLogado.getPerfil() + "]");
+        lblUsuario.setFont(new Font("Arial", Font.PLAIN, 12));
+        lblUsuario.setForeground(Color.WHITE);
+
+        cabecalho.add(lblTitulo, BorderLayout.WEST);
+        cabecalho.add(lblUsuario, BorderLayout.EAST);
+
+        // Painel de botões do menu
+        JPanel painelMenu = new JPanel(new GridLayout(3, 2, 15, 15));
+        painelMenu.setBorder(BorderFactory.createEmptyBorder(30, 50, 30, 50));
+        painelMenu.setBackground(Color.WHITE);
+
+        // Botões do menu
+        JButton btnPacientes    = criarBotaoMenu("Pacientes",     new Color(52, 152, 219));
+        JButton btnMedicos      = criarBotaoMenu("Médicos",       new Color(46, 204, 113));
+        JButton btnConsultas    = criarBotaoMenu(" Consultas",     new Color(230, 126, 34));
+        JButton btnProntuarios  = criarBotaoMenu("Prontuários",   new Color(155, 89, 182));
+        JButton btnRelatorios   = criarBotaoMenu("Relatórios",    new Color(52, 73, 94));
+        JButton btnSair         = criarBotaoMenu("Sair",          new Color(231, 76, 60));
+
+        painelMenu.add(btnPacientes);
+        painelMenu.add(btnMedicos);
+        painelMenu.add(btnConsultas);
+        painelMenu.add(btnProntuarios);
+        painelMenu.add(btnRelatorios);
+        painelMenu.add(btnSair);
+
+        // Acções dos botões
+        btnPacientes.addActionListener(e -> new TelaPacientes(usuarioLogado).setVisible(true));
+        btnMedicos.addActionListener(e -> new TelaMedicos(usuarioLogado).setVisible(true));
+        btnConsultas.addActionListener(e -> new TelaConsultas(usuarioLogado).setVisible(true));
+        btnProntuarios.addActionListener(e -> new TelaProntuarios(usuarioLogado).setVisible(true));
+        btnRelatorios.addActionListener(e -> new TelaRelatorios().setVisible(true));
+        btnSair.addActionListener(e -> {
+            int confirmar = JOptionPane.showConfirmDialog(this, "Deseja sair do sistema?", "Confirmar", JOptionPane.YES_NO_OPTION);
+            if (confirmar == JOptionPane.YES_OPTION) System.exit(0);
+        });
+
+        // Restrições por perfil
+        if (usuarioLogado.getPerfil().equals("MEDICO")) {
+            btnPacientes.setEnabled(false);
+            btnMedicos.setEnabled(false);
+        }
+
+        painelPrincipal.add(cabecalho, BorderLayout.NORTH);
+        painelPrincipal.add(painelMenu, BorderLayout.CENTER);
+
+        add(painelPrincipal);
+    }
+
+    private JButton criarBotaoMenu(String texto, Color cor) {
+        JButton btn = new JButton(texto);
+        btn.setBackground(cor);
+        btn.setForeground(Color.WHITE);
+        btn.setFont(new Font("Arial", Font.BOLD, 14));
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        return btn;
+    }
+}
