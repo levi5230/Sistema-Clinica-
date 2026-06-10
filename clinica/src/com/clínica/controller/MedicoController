@@ -1,0 +1,16 @@
+package com.clinica.controller;
+
+import com.clinica.dao.MedicoDAO;
+import com.clinica.model.Medico;
+import java.util.List;
+
+public class MedicoController {
+    private MedicoDAO dao = new MedicoDAO();
+
+    public void cadastrar(Medico m)    { dao.inserir(m); }
+    public void atualizar(Medico m)    { dao.atualizar(m); }
+    public void inativar(int id)       { dao.deletar(id); }
+    public Medico buscarPorId(int id)  { return dao.buscarPorId(id); }
+    public List<Medico> listarTodos()  { return dao.listarTodos(); }
+    public List<Medico> pesquisar(String termo) { return dao.buscarPorNome(termo); }
+}
