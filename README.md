@@ -125,19 +125,12 @@ git clone https://github.com/levi5230/sistema-clinica-medica.git
 
 -----
 
-## 👥 Autores
+## 👥 Autores:
+1-Levi Manuel Alberto 
+2-Gonçalves Pinto Domingos 
+3-Matondo Alberto Mauricio
+4-Ramos Brito Fernando
+5-André Mateus 
 
-|Nome|Função       |
-|----|-------------|
-|Levi|Desenvolvedor|
-
-
-> 📍 Universidade Kimpa Vita — Uíge, Angola  
-> 📅 Junho de 2026
-
------
-
-## 📄 Licença
-
-Projecto académico desenvolvido para fins educacionais.  
+📍 Universidade Kimpa Vita — Uíge, Angola  
 © 2026 — Universidade Kimpa Vita
