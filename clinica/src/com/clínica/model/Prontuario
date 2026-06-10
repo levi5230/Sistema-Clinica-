@@ -1,0 +1,57 @@
+package com.clinica.model;
+
+import java.time.LocalDateTime;
+
+/**
+ * MODEL — representa o prontuário eletrônico de uma consulta realizada.
+ */
+public class Prontuario {
+
+    private int           id;
+    private Consulta      consulta;
+    private Medico        medico;
+    private String        diagnostico;
+    private String        prescricao;
+    private String        observacoes;
+    private LocalDateTime criadoEm;
+
+    public Prontuario() {}
+
+    public Prontuario(int id, Consulta consulta, Medico medico,
+                      String diagnostico, String prescricao, String observacoes) {
+        this.id          = id;
+        this.consulta    = consulta;
+        this.medico      = medico;
+        this.diagnostico = diagnostico;
+        this.prescricao  = prescricao;
+        this.observacoes = observacoes;
+    }
+
+    public int getId()                              { return id; }
+    public void setId(int id)                       { this.id = id; }
+
+    public Consulta getConsulta()                   { return consulta; }
+    public void setConsulta(Consulta consulta)      { this.consulta = consulta; }
+
+    public Medico getMedico()                       { return medico; }
+    public void setMedico(Medico medico)            { this.medico = medico; }
+
+    public String getDiagnostico()                      { return diagnostico; }
+    public void setDiagnostico(String diagnostico)      { this.diagnostico = diagnostico; }
+
+    public String getPrescricao()                   { return prescricao; }
+    public void setPrescricao(String prescricao)    { this.prescricao = prescricao; }
+
+    public String getObservacoes()                  { return observacoes; }
+    public void setObservacoes(String obs)          { this.observacoes = obs; }
+
+    public LocalDateTime getCriadoEm()                  { return criadoEm; }
+    public void setCriadoEm(LocalDateTime criadoEm)     { this.criadoEm = criadoEm; }
+
+    @Override
+    public String toString() {
+        return "Prontuário #" + id + " | Paciente: "
+                + consulta.getPaciente().getNome()
+                + " | Diagnóstico: " + diagnostico;
+    }
+}
