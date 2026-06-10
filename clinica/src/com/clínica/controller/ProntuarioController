@@ -1,0 +1,14 @@
+package com.clinica.controller;
+
+import com.clinica.dao.ProntuarioDAO;
+import com.clinica.model.Prontuario;
+import java.util.List;
+
+public class ProntuarioController {
+    private ProntuarioDAO dao = new ProntuarioDAO();
+
+    public void criar(Prontuario pr)       { dao.inserir(pr); }
+    public void atualizar(Prontuario pr)   { dao.atualizar(pr); }
+    public Prontuario buscarPorId(int id)  { return dao.buscarPorId(id); }
+    public List<Prontuario> listarTodos()  { return dao.listarTodos(); }
+}
