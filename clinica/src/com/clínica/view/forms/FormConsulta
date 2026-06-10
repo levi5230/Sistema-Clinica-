@@ -1,0 +1,129 @@
+package com.clinica.view.forms;
+
+import com.clinica.controller.ConsultaController;
+import com.clinica.controller.MedicoController;
+import com.clinica.controller.PacienteController;
+import com.clinica.model.Consulta;
+import com.clinica.model.Medico;
+import com.clinica.model.Paciente;
+
+import javax.swing.*;
+import java.awt.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
+import java.util.List;
+
+/**
+ * VIEW — Formulário de agendamento/edição de Consulta.
+ */
+public class FormConsulta extends JDialog {
+
+    private JComboBox<Paciente> comboPaciente;
+    private JComboBox<Medico>   comboMedico;
+    private JTextField          campoDataHora;
+    private JComboBox<String>   comboStatus;
+    private JTextArea           areaObs;
+    private JButton             btnSalvar, btnCancelar;
+
+    private Consulta           consulta;
+    private ConsultaController controller;
+
+    public FormConsulta(JFrame pai, Consulta consulta, ConsultaController controller) {
+        super(pai, consulta == null ? "Nova Consulta" : "Editar Consulta", true);
+        this.consulta   = consulta;
+        this.controller = controller;
+        setSize(480, 380);
+        setLocationRelativeTo(pai);
+        construirComponentes();
+        if (consulta != null) preencherCampos();
+    }
+
+    private void construirComponentes() {
+        JPanel painel = new JPanel(new GridBagLayout());
+        painel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(6, 6, 6, 6);
+        gbc.fill   = GridBagConstraints.HORIZONTAL;
+
+        // Carregar dados para os combos
+        List<Paciente> pacientes = new PacienteController().listarTodos();
+        List<Medico>   medicos   = new MedicoController().listarTodos();
+
+        comboPaciente = new JComboBox<>(pacientes.toArray(new Paciente[0]));
+        comboMedico   = new JComboBox<>(medicos.toArray(new Medico[0]));
+        campoDataHora = new JTextField("2026-06-10 09:00:00");
+        comboStatus   = new JComboBox<>(new String[]{"AGENDADA", "CONFIRMADA", "REALIZADA", "CANCELADA"});
+        areaObs       = new JTextArea(3, 20);
+        areaObs.setLineWrap(true);
+
+        int linha = 0;
+        adicionarCampo(painel, gbc, "Paciente: *",                comboPaciente,              linha++);
+        adicionarCampo(painel, gbc, "Médico: *",                  comboMedico,                linha++);
+        adicionarCampo(painel, gbc, "Data/Hora (AAAA-MM-DD HH:MM:SS):", campoDataHora,        linha++);
+        adicionarCampo(painel, gbc, "Status:",                    comboStatus,                linha++);
+        adicionarCampo(painel, gbc, "Observações:",               new JScrollPane(areaObs),   linha++);
+
+        btnSalvar   = new JButton(" Salvar");
+        btnCancelar = new JButton("Cancelar");
+        btnSalvar.setBackground(new Color(46, 204, 113));
+        btnSalvar.setForeground(Color.WHITE);
+
+        JPanel pb = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        pb.add(btnCancelar); pb.add(btnSalvar);
+        gbc.gridx = 0; gbc.gridy = linha; gbc.gridwidth = 2;
+        painel.add(pb, gbc);
+
+        btnSalvar.addActionListener(e -> salvar());
+        btnCancelar.addActionListener(e -> dispose());
+        add(painel);
+    }
+
+    private void adicionarCampo(JPanel p, GridBagConstraints gbc, String label, Component campo, int linha) {
+        gbc.gridwidth = 1; gbc.gridx = 0; gbc.gridy = linha;
+        p.add(new JLabel(label), gbc);
+        gbc.gridx = 1;
+        p.add(campo, gbc);
+    }
+
+    private void preencherCampos() {
+        campoDataHora.setText(consulta.getDataHora().toString().replace("T", " "));
+        comboStatus.setSelectedItem(consulta.getStatus());
+        areaObs.setText(consulta.getObservacoes());
+    }
+
+    private void salvar() {
+        Paciente paciente = (Paciente) comboPaciente.getSelectedItem();
+        Medico   medico   = (Medico)   comboMedico.getSelectedItem();
+
+        if (paciente == null || medico == null) {
+            JOptionPane.showMessageDialog(this, "Seleccione paciente e médico.");
+            return;
+        }
+
+        LocalDateTime dataHora;
+        try {
+            dataHora = LocalDateTime.parse(campoDataHora.getText().trim().replace(" ", "T"));
+        } catch (DateTimeParseException ex) {
+            JOptionPane.showMessageDialog(this, "Data/Hora inválida. Use: AAAA-MM-DD HH:MM:SS");
+            return;
+        }
+
+        // Verificar conflito de horário
+        int idIgnorar = consulta == null ? 0 : consulta.getId();
+        if (controller.existeConflito(medico.getId(), dataHora, idIgnorar)) {
+            JOptionPane.showMessageDialog(this, "Este médico já tem consulta neste horário!");
+            return;
+        }
+
+        Consulta c = consulta == null ? new Consulta() : consulta;
+        c.setPaciente(paciente);
+        c.setMedico(medico);
+        c.setDataHora(dataHora);
+        c.setStatus((String) comboStatus.getSelectedItem());
+        c.setObservacoes(areaObs.getText().trim());
+
+        if (consulta == null) { controller.agendar(c);   JOptionPane.showMessageDialog(this, "Consulta agendada!"); }
+        else                  { controller.atualizar(c); JOptionPane.showMessageDialog(this, "Consulta actualizada!"); }
+        dispose();
+    }
+}
