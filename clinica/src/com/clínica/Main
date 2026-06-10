@@ -1,0 +1,22 @@
+package com.clinica;
+
+import com.clinica.view.forms.TelaLogin;
+
+import javax.swing.*;
+
+/**
+ * PONTO DE ENTRADA — arranca o sistema.
+ */
+public class Main {
+    public static void main(String[] args) {
+        // Garante que o Swing corre na thread correcta
+        SwingUtilities.invokeLater(() -> {
+            try {
+                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            new TelaLogin().setVisible(true);
+        });
+    }
+}
