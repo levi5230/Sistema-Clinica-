@@ -1,0 +1,95 @@
+package com.clinica.view.forms;
+
+import com.clinica.controller.MedicoController;
+import com.clinica.model.Medico;
+
+import javax.swing.*;
+import java.awt.*;
+
+/**
+ * VIEW — Formulário de cadastro/edição de Médico.
+ */
+public class FormMedico extends JDialog {
+
+    private JTextField campoNome, campoCrm, campoEspecialidade, campoTelefone, campoEmail;
+    private JButton    btnSalvar, btnCancelar;
+
+    private Medico           medico;
+    private MedicoController controller;
+
+    public FormMedico(JFrame pai, Medico medico, MedicoController controller) {
+        super(pai, medico == null ? "Novo Médico" : "Editar Médico", true);
+        this.medico     = medico;
+        this.controller = controller;
+        setSize(420, 320);
+        setLocationRelativeTo(pai);
+        construirComponentes();
+        if (medico != null) preencherCampos();
+    }
+
+    private void construirComponentes() {
+        JPanel p = new JPanel(new GridBagLayout());
+        p.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(6, 6, 6, 6);
+        gbc.fill   = GridBagConstraints.HORIZONTAL;
+
+        campoNome          = new JTextField(20);
+        campoCrm           = new JTextField(20);
+        campoEspecialidade = new JTextField(20);
+        campoTelefone      = new JTextField(20);
+        campoEmail         = new JTextField(20);
+
+        String[][] campos = {
+            {"Nome: *", ""}, {"CRM: *", ""}, {"Especialidade: *", ""},
+            {"Telefone:", ""}, {"Email:", ""}
+        };
+        JTextField[] inputs = {campoNome, campoCrm, campoEspecialidade, campoTelefone, campoEmail};
+
+        for (int i = 0; i < inputs.length; i++) {
+            gbc.gridx = 0; gbc.gridy = i; gbc.gridwidth = 1;
+            p.add(new JLabel(campos[i][0]), gbc);
+            gbc.gridx = 1;
+            p.add(inputs[i], gbc);
+        }
+
+        btnSalvar   = new JButton(" Salvar");
+        btnCancelar = new JButton("Cancelar");
+        btnSalvar.setBackground(new Color(46, 204, 113));
+        btnSalvar.setForeground(Color.WHITE);
+
+        JPanel pb = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        pb.add(btnCancelar); pb.add(btnSalvar);
+        gbc.gridx = 0; gbc.gridy = inputs.length; gbc.gridwidth = 2;
+        p.add(pb, gbc);
+
+        btnSalvar.addActionListener(e -> salvar());
+        btnCancelar.addActionListener(e -> dispose());
+        add(p);
+    }
+
+    private void preencherCampos() {
+        campoNome.setText(medico.getNome());
+        campoCrm.setText(medico.getCrm());
+        campoEspecialidade.setText(medico.getEspecialidade());
+        campoTelefone.setText(medico.getTelefone());
+        campoEmail.setText(medico.getEmail());
+    }
+
+    private void salvar() {
+        if (campoNome.getText().trim().isEmpty() || campoCrm.getText().trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Nome e CRM são obrigatórios.");
+            return;
+        }
+        Medico m = medico == null ? new Medico() : medico;
+        m.setNome(campoNome.getText().trim());
+        m.setCrm(campoCrm.getText().trim());
+        m.setEspecialidade(campoEspecialidade.getText().trim());
+        m.setTelefone(campoTelefone.getText().trim());
+        m.setEmail(campoEmail.getText().trim());
+
+        if (medico == null) { controller.cadastrar(m); JOptionPane.showMessageDialog(this, "Médico cadastrado!"); }
+        else                { controller.atualizar(m);  JOptionPane.showMessageDialog(this, "Médico actualizado!"); }
+        dispose();
+    }
+}
