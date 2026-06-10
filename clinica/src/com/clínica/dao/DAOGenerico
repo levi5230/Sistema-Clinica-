@@ -1,0 +1,17 @@
+package com.clinica.dao;
+
+import java.util.List;
+
+/**
+ * DAO GENÉRICO — interface que define as operações CRUD básicas.
+ * Todas as classes DAO implementam esta interface.
+ * T = tipo do objeto (Paciente, Medico, etc.)
+ */
+public interface DAOGenerico<T> {
+
+    void inserir(T obj);
+    void atualizar(T obj);
+    void deletar(int id);
+    T    buscarPorId(int id);
+    List<T> listarTodos();
+}
