@@ -1,0 +1,117 @@
+package com.clinica.view.forms;
+
+import com.clinica.controller.PacienteController;
+import com.clinica.model.Paciente;
+import com.clinica.model.Usuario;
+
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.time.LocalDate;
+import java.util.List;
+
+/**
+ * VIEW — Tela de Gestão de Pacientes.
+ */
+public class TelaPacientes extends JFrame {
+
+    private JTable             tabela;
+    private DefaultTableModel  modeloTabela;
+    private JTextField         campoPesquisa;
+    private PacienteController controller;
+    private Usuario            usuarioLogado;
+
+    public TelaPacientes(Usuario usuario) {
+        this.usuarioLogado = usuario;
+        this.controller    = new PacienteController();
+        configurarJanela();
+        construirComponentes();
+        carregarTabela("");
+    }
+
+    private void configurarJanela() {
+        setTitle("Gestão de Pacientes");
+        setSize(850, 550);
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    }
+
+    private void construirComponentes() {
+        JPanel painel = new JPanel(new BorderLayout(10, 10));
+        painel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        // ---- Painel superior: pesquisa e botões ----
+        JPanel painelTopo = new JPanel(new FlowLayout(FlowLayout.LEFT));
+
+        campoPesquisa = new JTextField(20);
+        JButton btnPesquisar = new JButton("Pesquisar");
+        JButton btnNovo      = new JButton(" Novo");
+        JButton btnEditar    = new JButton("Editar");
+        JButton btnInativar  = new JButton(" Inativar");
+
+        btnPesquisar.addActionListener(e -> carregarTabela(campoPesquisa.getText()));
+        btnNovo.addActionListener(e -> abrirFormulario(null));
+        btnEditar.addActionListener(e -> editarSelecionado());
+        btnInativar.addActionListener(e -> inativarSelecionado());
+
+        painelTopo.add(new JLabel("Pesquisar:"));
+        painelTopo.add(campoPesquisa);
+        painelTopo.add(btnPesquisar);
+        painelTopo.add(btnNovo);
+        painelTopo.add(btnEditar);
+        painelTopo.add(btnInativar);
+
+        // ---- Tabela ----
+        String[] colunas = {"ID", "Nome", "CPF", "Data Nasc.", "Sexo", "Telefone", "Cidade"};
+        modeloTabela = new DefaultTableModel(colunas, 0) {
+            public boolean isCellEditable(int r, int c) { return false; }
+        };
+        tabela = new JTable(modeloTabela);
+        tabela.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        tabela.getColumnModel().getColumn(0).setMaxWidth(50);
+        JScrollPane scroll = new JScrollPane(tabela);
+
+        painel.add(painelTopo, BorderLayout.NORTH);
+        painel.add(scroll, BorderLayout.CENTER);
+        add(painel);
+    }
+
+    private void carregarTabela(String termo) {
+        modeloTabela.setRowCount(0);
+        List<Paciente> lista = termo.isEmpty()
+                ? controller.listarTodos()
+                : controller.pesquisar(termo);
+        for (Paciente p : lista) {
+            modeloTabela.addRow(new Object[]{
+                p.getId(), p.getNome(), p.getCpf(),
+                p.getDataNascimento(), p.getSexo(),
+                p.getTelefone(), p.getCidade()
+            });
+        }
+    }
+
+    private void abrirFormulario(Paciente paciente) {
+        FormPaciente form = new FormPaciente(this, paciente, controller);
+        form.setVisible(true);
+        carregarTabela("");
+    }
+
+    private void editarSelecionado() {
+        int linha = tabela.getSelectedRow();
+        if (linha < 0) { JOptionPane.showMessageDialog(this, "Seleccione um paciente."); return; }
+        int id = (int) modeloTabela.getValueAt(linha, 0);
+        Paciente p = controller.buscarPorId(id);
+        abrirFormulario(p);
+    }
+
+    private void inativarSelecionado() {
+        int linha = tabela.getSelectedRow();
+        if (linha < 0) { JOptionPane.showMessageDialog(this, "Seleccione um paciente."); return; }
+        int confirmar = JOptionPane.showConfirmDialog(this, "Inativar este paciente?", "Confirmar", JOptionPane.YES_NO_OPTION);
+        if (confirmar == JOptionPane.YES_OPTION) {
+            int id = (int) modeloTabela.getValueAt(linha, 0);
+            controller.inativar(id);
+            carregarTabela("");
+        }
+    }
+}
