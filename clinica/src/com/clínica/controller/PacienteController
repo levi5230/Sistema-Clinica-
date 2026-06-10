@@ -1,0 +1,16 @@
+package com.clinica.controller;
+
+import com.clinica.dao.PacienteDAO;
+import com.clinica.model.Paciente;
+import java.util.List;
+
+public class PacienteController {
+    private PacienteDAO dao = new PacienteDAO();
+
+    public void cadastrar(Paciente p)    { dao.inserir(p); }
+    public void atualizar(Paciente p)    { dao.atualizar(p); }
+    public void inativar(int id)         { dao.deletar(id); }
+    public Paciente buscarPorId(int id)  { return dao.buscarPorId(id); }
+    public List<Paciente> listarTodos()  { return dao.listarTodos(); }
+    public List<Paciente> pesquisar(String termo) { return dao.buscarPorNomeOuCpf(termo); }
+}
