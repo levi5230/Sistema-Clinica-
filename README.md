@@ -5,9 +5,10 @@
 ![Swing](https://img.shields.io/badge/GUI-Java%20Swing-green?style=flat-square)
 ![Status](https://img.shields.io/badge/Status-Concluído-brightgreen?style=flat-square)
 
-> Trabalho Prático — 2ª Prova | Linguagens de Programação VI  
-> Universidade Kimpa Vita — Instituto Politécnico  
-> Docente: **Moyo Kanivengidio** | 2º Ano de Engenharia Informática
+> Trabalho Prático-2ª Prova Linguagens de Programação VI  
+> Universidade Kimpa Vita-Instituto Politécnico  
+> Docente: **Moyo Kanivengidio**
+>  2º Ano de Engenharia Informática
 
 -----
 
