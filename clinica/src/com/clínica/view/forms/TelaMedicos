@@ -1,0 +1,106 @@
+package com.clinica.view.forms;
+
+import com.clinica.controller.MedicoController;
+import com.clinica.model.Medico;
+import com.clinica.model.Usuario;
+
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.util.List;
+
+/**
+ * VIEW — Tela de Gestão de Médicos.
+ */
+public class TelaMedicos extends JFrame {
+
+    private JTable            tabela;
+    private DefaultTableModel modeloTabela;
+    private JTextField        campoPesquisa;
+    private MedicoController  controller;
+
+    public TelaMedicos(Usuario usuario) {
+        this.controller = new MedicoController();
+        configurarJanela();
+        construirComponentes();
+        carregarTabela("");
+    }
+
+    private void configurarJanela() {
+        setTitle("Gestão de Médicos");
+        setSize(800, 500);
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    }
+
+    private void construirComponentes() {
+        JPanel painel = new JPanel(new BorderLayout(10, 10));
+        painel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JPanel painelTopo = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        campoPesquisa = new JTextField(20);
+        JButton btnPesquisar = new JButton("Pesquisar");
+        JButton btnNovo      = new JButton("Novo");
+        JButton btnEditar    = new JButton(" Editar");
+        JButton btnInativar  = new JButton("Inativar");
+
+        btnPesquisar.addActionListener(e -> carregarTabela(campoPesquisa.getText()));
+        btnNovo.addActionListener(e -> abrirFormulario(null));
+        btnEditar.addActionListener(e -> editarSelecionado());
+        btnInativar.addActionListener(e -> inativarSelecionado());
+
+        painelTopo.add(new JLabel("Pesquisar:"));
+        painelTopo.add(campoPesquisa);
+        painelTopo.add(btnPesquisar);
+        painelTopo.add(btnNovo);
+        painelTopo.add(btnEditar);
+        painelTopo.add(btnInativar);
+
+        String[] colunas = {"ID", "Nome", "CRM", "Especialidade", "Telefone", "Email"};
+        modeloTabela = new DefaultTableModel(colunas, 0) {
+            public boolean isCellEditable(int r, int c) { return false; }
+        };
+        tabela = new JTable(modeloTabela);
+        tabela.getColumnModel().getColumn(0).setMaxWidth(50);
+
+        painel.add(painelTopo, BorderLayout.NORTH);
+        painel.add(new JScrollPane(tabela), BorderLayout.CENTER);
+        add(painel);
+    }
+
+    private void carregarTabela(String termo) {
+        modeloTabela.setRowCount(0);
+        List<Medico> lista = termo.isEmpty()
+                ? controller.listarTodos()
+                : controller.pesquisar(termo);
+        for (Medico m : lista) {
+            modeloTabela.addRow(new Object[]{
+                m.getId(), m.getNome(), m.getCrm(),
+                m.getEspecialidade(), m.getTelefone(), m.getEmail()
+            });
+        }
+    }
+
+    private void abrirFormulario(Medico medico) {
+        FormMedico form = new FormMedico(this, medico, controller);
+        form.setVisible(true);
+        carregarTabela("");
+    }
+
+    private void editarSelecionado() {
+        int linha = tabela.getSelectedRow();
+        if (linha < 0) { JOptionPane.showMessageDialog(this, "Seleccione um médico."); return; }
+        int id = (int) modeloTabela.getValueAt(linha, 0);
+        abrirFormulario(controller.buscarPorId(id));
+    }
+
+    private void inativarSelecionado() {
+        int linha = tabela.getSelectedRow();
+        if (linha < 0) { JOptionPane.showMessageDialog(this, "Seleccione um médico."); return; }
+        int conf = JOptionPane.showConfirmDialog(this, "Inativar este médico?", "Confirmar", JOptionPane.YES_NO_OPTION);
+        if (conf == JOptionPane.YES_OPTION) {
+            controller.inativar((int) modeloTabela.getValueAt(linha, 0));
+            carregarTabela("");
+        }
+    }
+}
