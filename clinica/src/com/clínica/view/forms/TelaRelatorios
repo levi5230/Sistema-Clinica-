@@ -1,0 +1,274 @@
+package com.clinica.view.forms;
+
+import com.clinica.controller.ConsultaController;
+import com.clinica.controller.MedicoController;
+import com.clinica.controller.PacienteController;
+import com.clinica.model.Consulta;
+import com.clinica.model.Medico;
+import com.clinica.model.Paciente;
+
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * VIEW — Tela de Relatórios Gerenciais.
+ */
+public class TelaRelatorios extends JFrame {
+
+    private JTabbedPane abas;
+
+    // Aba 1 — Consultas por médico
+    private JComboBox<Medico> comboMedico;
+    private JTextField        campoInicio, campoFim;
+    private JTable            tabelaConsultasMedico;
+    private DefaultTableModel modeloConsultasMedico;
+    private JLabel            lblTotalMedico;
+
+    // Aba 2 — Pacientes activos
+    private JTable            tabelaPacientes;
+    private DefaultTableModel modeloPacientes;
+    private JLabel            lblTotalPacientes;
+
+    // Aba 3 — Consultas por status
+    private JTable            tabelaStatus;
+    private DefaultTableModel modeloStatus;
+
+    private ConsultaController consultaController;
+    private MedicoController   medicoController;
+    private PacienteController pacienteController;
+
+    public TelaRelatorios() {
+        consultaController  = new ConsultaController();
+        medicoController    = new MedicoController();
+        pacienteController  = new PacienteController();
+        configurarJanela();
+        construirComponentes();
+    }
+
+    private void configurarJanela() {
+        setTitle("Relatórios Gerenciais");
+        setSize(900, 600);
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    }
+
+    private void construirComponentes() {
+        abas = new JTabbedPane();
+        abas.setFont(new Font("Arial", Font.BOLD, 13));
+
+        abas.addTab("📊 Consultas por Médico",  construirAbaConsultasMedico());
+        abas.addTab("👥 Pacientes Activos",      construirAbaPacientes());
+        abas.addTab("📋 Consultas por Status",   construirAbaStatus());
+
+        add(abas);
+    }
+
+    // ============================================================
+    // ABA 1 — Consultas por médico e período
+    // ============================================================
+    private JPanel construirAbaConsultasMedico() {
+        JPanel painel = new JPanel(new BorderLayout(10, 10));
+        painel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        // Filtros
+        JPanel painelFiltros = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        painelFiltros.setBorder(BorderFactory.createTitledBorder("Filtros"));
+
+        List<Medico> medicos = medicoController.listarTodos();
+        comboMedico  = new JComboBox<>(medicos.toArray(new Medico[0]));
+        campoInicio  = new JTextField("2026-01-01 00:00:00", 16);
+        campoFim     = new JTextField("2026-12-31 23:59:59", 16);
+        JButton btnGerar = new JButton("🔍 Gerar Relatório");
+        btnGerar.setBackground(new Color(30, 100, 180));
+        btnGerar.setForeground(Color.WHITE);
+        btnGerar.setFont(new Font("Arial", Font.BOLD, 12));
+
+        painelFiltros.add(new JLabel("Médico:"));
+        painelFiltros.add(comboMedico);
+        painelFiltros.add(new JLabel("  De:"));
+        painelFiltros.add(campoInicio);
+        painelFiltros.add(new JLabel("  Até:"));
+        painelFiltros.add(campoFim);
+        painelFiltros.add(btnGerar);
+
+        // Tabela
+        String[] colunas = {"ID", "Paciente", "Data/Hora", "Status"};
+        modeloConsultasMedico = new DefaultTableModel(colunas, 0) {
+            public boolean isCellEditable(int r, int c) { return false; }
+        };
+        tabelaConsultasMedico = new JTable(modeloConsultasMedico);
+        tabelaConsultasMedico.getColumnModel().getColumn(0).setMaxWidth(50);
+
+        // Rodapé
+        lblTotalMedico = new JLabel("Total: 0 consultas");
+        lblTotalMedico.setFont(new Font("Arial", Font.BOLD, 13));
+        lblTotalMedico.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+
+        JPanel painelRodape = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JButton btnImprimir = new JButton("🖨️ Exportar para TXT");
+        btnImprimir.addActionListener(e -> exportarConsultasMedico());
+        painelRodape.add(lblTotalMedico);
+        painelRodape.add(btnImprimir);
+
+        btnGerar.addActionListener(e -> gerarRelatorioMedico());
+
+        painel.add(painelFiltros,              BorderLayout.NORTH);
+        painel.add(new JScrollPane(tabelaConsultasMedico), BorderLayout.CENTER);
+        painel.add(painelRodape,               BorderLayout.SOUTH);
+
+        return painel;
+    }
+
+    private void gerarRelatorioMedico() {
+        Medico medico = (Medico) comboMedico.getSelectedItem();
+        if (medico == null) { JOptionPane.showMessageDialog(this, "Seleccione um médico."); return; }
+
+        LocalDateTime inicio, fim;
+        try {
+            inicio = LocalDateTime.parse(campoInicio.getText().trim().replace(" ", "T"));
+            fim    = LocalDateTime.parse(campoFim.getText().trim().replace(" ", "T"));
+        } catch (DateTimeParseException ex) {
+            JOptionPane.showMessageDialog(this, "Data inválida. Use: AAAA-MM-DD HH:MM:SS");
+            return;
+        }
+
+        modeloConsultasMedico.setRowCount(0);
+        List<Consulta> lista = consultaController.listarPorMedicoEPeriodo(medico.getId(), inicio, fim);
+        for (Consulta c : lista) {
+            modeloConsultasMedico.addRow(new Object[]{
+                c.getId(),
+                c.getPaciente().getNome(),
+                c.getDataHora(),
+                c.getStatus()
+            });
+        }
+        lblTotalMedico.setText("Total: " + lista.size() + " consulta(s)  |  Médico: " + medico.getNome());
+    }
+
+    private void exportarConsultasMedico() {
+        if (modeloConsultasMedico.getRowCount() == 0) {
+            JOptionPane.showMessageDialog(this, "Gere o relatório primeiro.");
+            return;
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("=== RELATÓRIO DE CONSULTAS POR MÉDICO ===\n");
+        sb.append(lblTotalMedico.getText()).append("\n");
+        sb.append("------------------------------------------\n");
+        sb.append(String.format("%-5s %-30s %-20s %-12s%n", "ID", "Paciente", "Data/Hora", "Status"));
+        sb.append("------------------------------------------\n");
+        for (int i = 0; i < modeloConsultasMedico.getRowCount(); i++) {
+            sb.append(String.format("%-5s %-30s %-20s %-12s%n",
+                modeloConsultasMedico.getValueAt(i, 0),
+                modeloConsultasMedico.getValueAt(i, 1),
+                modeloConsultasMedico.getValueAt(i, 2),
+                modeloConsultasMedico.getValueAt(i, 3)
+            ));
+        }
+        JTextArea area = new JTextArea(sb.toString(), 20, 60);
+        area.setEditable(false);
+        area.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        JOptionPane.showMessageDialog(this, new JScrollPane(area), "Relatório", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    // ============================================================
+    // ABA 2 — Pacientes activos
+    // ============================================================
+    private JPanel construirAbaPacientes() {
+        JPanel painel = new JPanel(new BorderLayout(10, 10));
+        painel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JButton btnCarregar = new JButton("🔍 Carregar Pacientes Activos");
+        btnCarregar.setBackground(new Color(46, 204, 113));
+        btnCarregar.setForeground(Color.WHITE);
+        btnCarregar.setFont(new Font("Arial", Font.BOLD, 12));
+        btnCarregar.addActionListener(e -> carregarPacientesActivos());
+
+        JPanel painelTopo = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        painelTopo.add(btnCarregar);
+
+        String[] colunas = {"ID", "Nome", "CPF", "Data Nasc.", "Telefone", "Cidade"};
+        modeloPacientes = new DefaultTableModel(colunas, 0) {
+            public boolean isCellEditable(int r, int c) { return false; }
+        };
+        tabelaPacientes = new JTable(modeloPacientes);
+        tabelaPacientes.getColumnModel().getColumn(0).setMaxWidth(50);
+
+        lblTotalPacientes = new JLabel("Total: 0 pacientes activos");
+        lblTotalPacientes.setFont(new Font("Arial", Font.BOLD, 13));
+        lblTotalPacientes.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+
+        painel.add(painelTopo,                    BorderLayout.NORTH);
+        painel.add(new JScrollPane(tabelaPacientes), BorderLayout.CENTER);
+        painel.add(lblTotalPacientes,             BorderLayout.SOUTH);
+
+        return painel;
+    }
+
+    private void carregarPacientesActivos() {
+        modeloPacientes.setRowCount(0);
+        List<Paciente> lista = pacienteController.listarTodos();
+        for (Paciente p : lista) {
+            modeloPacientes.addRow(new Object[]{
+                p.getId(), p.getNome(), p.getCpf(),
+                p.getDataNascimento(), p.getTelefone(), p.getCidade()
+            });
+        }
+        lblTotalPacientes.setText("Total: " + lista.size() + " paciente(s) activo(s)");
+    }
+
+    // ============================================================
+    // ABA 3 — Consultas por status
+    // ============================================================
+    private JPanel construirAbaStatus() {
+        JPanel painel = new JPanel(new BorderLayout(10, 10));
+        painel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JButton btnCarregar = new JButton("🔍 Gerar Resumo por Status");
+        btnCarregar.setBackground(new Color(155, 89, 182));
+        btnCarregar.setForeground(Color.WHITE);
+        btnCarregar.setFont(new Font("Arial", Font.BOLD, 12));
+        btnCarregar.addActionListener(e -> carregarResumoStatus());
+
+        JPanel painelTopo = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        painelTopo.add(btnCarregar);
+
+        String[] colunas = {"Status", "Quantidade", "Percentagem"};
+        modeloStatus = new DefaultTableModel(colunas, 0) {
+            public boolean isCellEditable(int r, int c) { return false; }
+        };
+        tabelaStatus = new JTable(modeloStatus);
+        tabelaStatus.setRowHeight(30);
+        tabelaStatus.setFont(new Font("Arial", Font.PLAIN, 13));
+
+        painel.add(painelTopo,                  BorderLayout.NORTH);
+        painel.add(new JScrollPane(tabelaStatus), BorderLayout.CENTER);
+
+        return painel;
+    }
+
+    private void carregarResumoStatus() {
+        modeloStatus.setRowCount(0);
+        List<Consulta> todas = consultaController.listarTodos();
+        int total = todas.size();
+        if (total == 0) { JOptionPane.showMessageDialog(this, "Nenhuma consulta encontrada."); return; }
+
+        Map<String, Long> agrupado = todas.stream()
+                .collect(Collectors.groupingBy(Consulta::getStatus, Collectors.counting()));
+
+        String[] statusOrdem = {"AGENDADA", "CONFIRMADA", "REALIZADA", "CANCELADA"};
+        for (String status : statusOrdem) {
+            long qtd = agrupado.getOrDefault(status, 0L);
+            double pct = (qtd * 100.0) / total;
+            modeloStatus.addRow(new Object[]{
+                status, qtd, String.format("%.1f%%", pct)
+            });
+        }
+        modeloStatus.addRow(new Object[]{"TOTAL", total, "100%"});
+    }
+}
