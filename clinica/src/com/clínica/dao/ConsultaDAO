@@ -1,0 +1,161 @@
+package com.clinica.dao;
+
+import com.clinica.connection.ConexaoDB;
+import com.clinica.model.Consulta;
+import com.clinica.model.Medico;
+import com.clinica.model.Paciente;
+
+import java.sql.*;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * DAO — concentra todo o código JDBC para a entidade Consulta.
+ */
+public class ConsultaDAO implements DAOGenerico<Consulta> {
+
+    private Connection conn;
+
+    public ConsultaDAO() {
+        this.conn = ConexaoDB.getConexao();
+    }
+
+    @Override
+    public void inserir(Consulta c) {
+        String sql = "INSERT INTO consultas (paciente_id, medico_id, data_hora, status, observacoes) VALUES (?,?,?,?,?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, c.getPaciente().getId());
+            ps.setInt(2, c.getMedico().getId());
+            ps.setTimestamp(3, Timestamp.valueOf(c.getDataHora()));
+            ps.setString(4, c.getStatus());
+            ps.setString(5, c.getObservacoes());
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Erro ao inserir consulta: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void atualizar(Consulta c) {
+        String sql = "UPDATE consultas SET paciente_id=?, medico_id=?, data_hora=?, status=?, observacoes=?, motivo_cancel=? WHERE id=?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, c.getPaciente().getId());
+            ps.setInt(2, c.getMedico().getId());
+            ps.setTimestamp(3, Timestamp.valueOf(c.getDataHora()));
+            ps.setString(4, c.getStatus());
+            ps.setString(5, c.getObservacoes());
+            ps.setString(6, c.getMotivoCancelamento());
+            ps.setInt(7, c.getId());
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Erro ao atualizar consulta: " + e.getMessage());
+        }
+    }
+
+    /** Cancela uma consulta com motivo */
+    public void cancelar(int id, String motivo) {
+        String sql = "UPDATE consultas SET status='CANCELADA', motivo_cancel=? WHERE id=?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, motivo);
+            ps.setInt(2, id);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Erro ao cancelar consulta: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void deletar(int id) { cancelar(id, "Removida pelo sistema"); }
+
+    @Override
+    public Consulta buscarPorId(int id) {
+        String sql = buildSelectCompleto() + " WHERE c.id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return mapear(rs);
+        } catch (SQLException e) {
+            System.err.println("Erro ao buscar consulta: " + e.getMessage());
+        }
+        return null;
+    }
+
+    @Override
+    public List<Consulta> listarTodos() {
+        List<Consulta> lista = new ArrayList<>();
+        String sql = buildSelectCompleto() + " ORDER BY c.data_hora DESC";
+        try (PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) lista.add(mapear(rs));
+        } catch (SQLException e) {
+            System.err.println("Erro ao listar consultas: " + e.getMessage());
+        }
+        return lista;
+    }
+
+    /** Lista consultas por médico e período (para relatórios) */
+    public List<Consulta> listarPorMedicoEPeriodo(int medicoId, LocalDateTime inicio, LocalDateTime fim) {
+        List<Consulta> lista = new ArrayList<>();
+        String sql = buildSelectCompleto() + " WHERE c.medico_id = ? AND c.data_hora BETWEEN ? AND ? ORDER BY c.data_hora";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, medicoId);
+            ps.setTimestamp(2, Timestamp.valueOf(inicio));
+            ps.setTimestamp(3, Timestamp.valueOf(fim));
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) lista.add(mapear(rs));
+        } catch (SQLException e) {
+            System.err.println("Erro ao listar consultas por médico: " + e.getMessage());
+        }
+        return lista;
+    }
+
+    /** Verifica se médico já tem consulta no mesmo horário */
+    public boolean existeConflito(int medicoId, LocalDateTime dataHora, int consultaIdIgnorar) {
+        String sql = "SELECT COUNT(*) FROM consultas WHERE medico_id=? AND data_hora=? AND id != ? AND status != 'CANCELADA'";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, medicoId);
+            ps.setTimestamp(2, Timestamp.valueOf(dataHora));
+            ps.setInt(3, consultaIdIgnorar);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getInt(1) > 0;
+        } catch (SQLException e) {
+            System.err.println("Erro ao verificar conflito: " + e.getMessage());
+        }
+        return false;
+    }
+
+    private String buildSelectCompleto() {
+        return "SELECT c.*, " +
+               "p.nome AS pac_nome, p.cpf AS pac_cpf, " +
+               "m.nome AS med_nome, m.crm AS med_crm, " +
+               "e.nome AS med_especialidade " +
+               "FROM consultas c " +
+               "JOIN pacientes p ON c.paciente_id = p.id " +
+               "JOIN medicos m   ON c.medico_id   = m.id " +
+               "JOIN especialidades e ON m.especialidade_id = e.id";
+    }
+
+    private Consulta mapear(ResultSet rs) throws SQLException {
+        Paciente p = new Paciente();
+        p.setId(rs.getInt("paciente_id"));
+        p.setNome(rs.getString("pac_nome"));
+        p.setCpf(rs.getString("pac_cpf"));
+
+        Medico m = new Medico();
+        m.setId(rs.getInt("medico_id"));
+        m.setNome(rs.getString("med_nome"));
+        m.setCrm(rs.getString("med_crm"));
+        m.setEspecialidade(rs.getString("med_especialidade"));
+
+        Consulta c = new Consulta();
+        c.setId(rs.getInt("id"));
+        c.setPaciente(p);
+        c.setMedico(m);
+        c.setDataHora(rs.getTimestamp("data_hora").toLocalDateTime());
+        c.setStatus(rs.getString("status"));
+        c.setObservacoes(rs.getString("observacoes"));
+        c.setMotivoCancelamento(rs.getString("motivo_cancel"));
+        return c;
+    }
+}
