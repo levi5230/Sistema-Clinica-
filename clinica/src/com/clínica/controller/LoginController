@@ -1,0 +1,23 @@
+package com.clinica.controller;
+
+import com.clinica.dao.UsuarioDAO;
+import com.clinica.model.Usuario;
+
+public class LoginController {
+
+    private UsuarioDAO dao;
+    private Usuario    usuarioLogado;
+
+    public LoginController() {
+        this.dao = new UsuarioDAO();
+    }
+
+    public boolean autenticar(String login, String senha) {
+        usuarioLogado = dao.autenticar(login, senha);
+        return usuarioLogado != null;
+    }
+
+    public Usuario getUsuarioLogado() {
+        return usuarioLogado;
+    }
+}
