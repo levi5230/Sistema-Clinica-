@@ -1,0 +1,146 @@
+package com.clinica.view.forms;
+
+import com.clinica.controller.PacienteController;
+import com.clinica.model.Paciente;
+
+import javax.swing.*;
+import java.awt.*;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+
+/**
+ * VIEW — Formulário de cadastro/edição de Paciente.
+ */
+public class FormPaciente extends JDialog {
+
+    private JTextField campoNome, campoCpf, campoDataNasc, campoTelefone,
+                       campoEmail, campoLogradouro, campoBairro, campoCidade;
+    private JComboBox<String> comboSexo;
+    private JTextArea  areaHistorico;
+    private JButton    btnSalvar, btnCancelar;
+
+    private Paciente           paciente;
+    private PacienteController controller;
+
+    public FormPaciente(JFrame pai, Paciente paciente, PacienteController controller) {
+        super(pai, paciente == null ? "Novo Paciente" : "Editar Paciente", true);
+        this.paciente   = paciente;
+        this.controller = controller;
+        configurarJanela();
+        construirComponentes();
+        if (paciente != null) preencherCampos();
+    }
+
+    private void configurarJanela() {
+        setSize(500, 520);
+        setLocationRelativeTo(getParent());
+        setResizable(false);
+    }
+
+    private void construirComponentes() {
+        JPanel painel = new JPanel(new GridBagLayout());
+        painel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets  = new Insets(5, 5, 5, 5);
+        gbc.fill    = GridBagConstraints.HORIZONTAL;
+        gbc.anchor  = GridBagConstraints.WEST;
+
+        campoNome      = new JTextField(20);
+        campoCpf       = new JTextField(20);
+        campoDataNasc  = new JTextField(20);
+        campoTelefone  = new JTextField(20);
+        campoEmail     = new JTextField(20);
+        campoLogradouro= new JTextField(20);
+        campoBairro    = new JTextField(20);
+        campoCidade    = new JTextField(20);
+        comboSexo      = new JComboBox<>(new String[]{"M", "F", "OUTRO"});
+        areaHistorico  = new JTextArea(3, 20);
+        areaHistorico.setLineWrap(true);
+
+        int linha = 0;
+        adicionarCampo(painel, gbc, "Nome: *",           campoNome,                    linha++);
+        adicionarCampo(painel, gbc, "CPF: *",            campoCpf,                     linha++);
+        adicionarCampo(painel, gbc, "Data Nasc. (AAAA-MM-DD): *", campoDataNasc,       linha++);
+        adicionarCampo(painel, gbc, "Sexo: *",           comboSexo,                    linha++);
+        adicionarCampo(painel, gbc, "Telefone:",         campoTelefone,                linha++);
+        adicionarCampo(painel, gbc, "Email:",            campoEmail,                   linha++);
+        adicionarCampo(painel, gbc, "Logradouro:",       campoLogradouro,              linha++);
+        adicionarCampo(painel, gbc, "Bairro:",           campoBairro,                  linha++);
+        adicionarCampo(painel, gbc, "Cidade:",           campoCidade,                  linha++);
+        adicionarCampo(painel, gbc, "Histórico:",        new JScrollPane(areaHistorico), linha++);
+
+        // Botões
+        JPanel painelBotoes = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        btnSalvar   = new JButton("Salvar");
+        btnCancelar = new JButton("Cancelar");
+        btnSalvar.setBackground(new Color(46, 204, 113));
+        btnSalvar.setForeground(Color.WHITE);
+        painelBotoes.add(btnCancelar);
+        painelBotoes.add(btnSalvar);
+
+        gbc.gridx = 0; gbc.gridy = linha; gbc.gridwidth = 2;
+        painel.add(painelBotoes, gbc);
+
+        btnSalvar.addActionListener(e -> salvar());
+        btnCancelar.addActionListener(e -> dispose());
+
+        add(new JScrollPane(painel));
+    }
+
+    private void adicionarCampo(JPanel p, GridBagConstraints gbc, String label, Component campo, int linha) {
+        gbc.gridwidth = 1; gbc.gridx = 0; gbc.gridy = linha;
+        p.add(new JLabel(label), gbc);
+        gbc.gridx = 1;
+        p.add(campo, gbc);
+    }
+
+    private void preencherCampos() {
+        campoNome.setText(paciente.getNome());
+        campoCpf.setText(paciente.getCpf());
+        campoDataNasc.setText(paciente.getDataNascimento().toString());
+        comboSexo.setSelectedItem(paciente.getSexo());
+        campoTelefone.setText(paciente.getTelefone());
+        campoEmail.setText(paciente.getEmail());
+        campoLogradouro.setText(paciente.getLogradouro());
+        campoBairro.setText(paciente.getBairro());
+        campoCidade.setText(paciente.getCidade());
+        areaHistorico.setText(paciente.getHistoricoMedico());
+    }
+
+    private void salvar() {
+        if (campoNome.getText().trim().isEmpty() || campoCpf.getText().trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Nome e CPF são obrigatórios.");
+            return;
+        }
+
+        LocalDate dataNasc;
+        try {
+            dataNasc = LocalDate.parse(campoDataNasc.getText().trim());
+        } catch (DateTimeParseException ex) {
+            JOptionPane.showMessageDialog(this, "Data inválida. Use o formato AAAA-MM-DD.");
+            return;
+        }
+
+        Paciente p = paciente == null ? new Paciente() : paciente;
+        p.setNome(campoNome.getText().trim());
+        p.setCpf(campoCpf.getText().trim());
+        p.setDataNascimento(dataNasc);
+        p.setSexo((String) comboSexo.getSelectedItem());
+        p.setTelefone(campoTelefone.getText().trim());
+        p.setEmail(campoEmail.getText().trim());
+        p.setLogradouro(campoLogradouro.getText().trim());
+        p.setBairro(campoBairro.getText().trim());
+        p.setCidade(campoCidade.getText().trim());
+        p.setHistoricoMedico(areaHistorico.getText().trim());
+
+        if (paciente == null) {
+            controller.cadastrar(p);
+            JOptionPane.showMessageDialog(this, "Paciente cadastrado com sucesso!");
+        } else {
+            controller.atualizar(p);
+            JOptionPane.showMessageDialog(this, "Paciente actualizado com sucesso!");
+        }
+        dispose();
+    }
+}
