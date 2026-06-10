@@ -1,0 +1,104 @@
+package com.clinica.view.forms;
+
+import com.clinica.controller.ConsultaController;
+import com.clinica.controller.ProntuarioController;
+import com.clinica.model.Consulta;
+import com.clinica.model.Prontuario;
+
+import javax.swing.*;
+import java.awt.*;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * VIEW — Formulário de criação/edição de Prontuário.
+ */
+public class FormProntuario extends JDialog {
+
+    private JComboBox<Consulta> comboConsulta;
+    private JTextArea           areaDiagnostico, areaPrescricao, areaObs;
+    private JButton             btnSalvar, btnCancelar;
+
+    private Prontuario           prontuario;
+    private ProntuarioController controller;
+
+    public FormProntuario(JFrame pai, Prontuario prontuario, ProntuarioController controller) {
+        super(pai, prontuario == null ? "Novo Prontuário" : "Editar Prontuário", true);
+        this.prontuario = prontuario;
+        this.controller = controller;
+        setSize(500, 420);
+        setLocationRelativeTo(pai);
+        construirComponentes();
+        if (prontuario != null) preencherCampos();
+    }
+
+    private void construirComponentes() {
+        JPanel painel = new JPanel(new GridBagLayout());
+        painel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(6, 6, 6, 6);
+        gbc.fill   = GridBagConstraints.HORIZONTAL;
+
+        // Apenas consultas com status REALIZADA podem ter prontuário
+        List<Consulta> consultas = new ConsultaController().listarTodos()
+                .stream()
+                .filter(c -> c.getStatus().equals("REALIZADA"))
+                .collect(Collectors.toList());
+
+        comboConsulta   = new JComboBox<>(consultas.toArray(new Consulta[0]));
+        areaDiagnostico = new JTextArea(3, 20); areaDiagnostico.setLineWrap(true);
+        areaPrescricao  = new JTextArea(3, 20); areaPrescricao.setLineWrap(true);
+        areaObs         = new JTextArea(3, 20); areaObs.setLineWrap(true);
+
+        int linha = 0;
+        adicionarCampo(painel, gbc, "Consulta Realizada: *",  comboConsulta,                    linha++);
+        adicionarCampo(painel, gbc, "Diagnóstico: *",         new JScrollPane(areaDiagnostico), linha++);
+        adicionarCampo(painel, gbc, "Prescrição:",            new JScrollPane(areaPrescricao),  linha++);
+        adicionarCampo(painel, gbc, "Observações:",           new JScrollPane(areaObs),         linha++);
+
+        btnSalvar   = new JButton(" Salvar");
+        btnCancelar = new JButton("Cancelar");
+        btnSalvar.setBackground(new Color(155, 89, 182));
+        btnSalvar.setForeground(Color.WHITE);
+
+        JPanel pb = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        pb.add(btnCancelar); pb.add(btnSalvar);
+        gbc.gridx = 0; gbc.gridy = linha; gbc.gridwidth = 2;
+        painel.add(pb, gbc);
+
+        btnSalvar.addActionListener(e -> salvar());
+        btnCancelar.addActionListener(e -> dispose());
+        add(new JScrollPane(painel));
+    }
+
+    private void adicionarCampo(JPanel p, GridBagConstraints gbc, String label, Component campo, int linha) {
+        gbc.gridwidth = 1; gbc.gridx = 0; gbc.gridy = linha;
+        p.add(new JLabel(label), gbc);
+        gbc.gridx = 1;
+        p.add(campo, gbc);
+    }
+
+    private void preencherCampos() {
+        areaDiagnostico.setText(prontuario.getDiagnostico());
+        areaPrescricao.setText(prontuario.getPrescricao());
+        areaObs.setText(prontuario.getObservacoes());
+    }
+
+    private void salvar() {
+        Consulta consulta = (Consulta) comboConsulta.getSelectedItem();
+        if (consulta == null || areaDiagnostico.getText().trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Consulta e Diagnóstico são obrigatórios.");
+            return;
+        }
+        Prontuario pr = prontuario == null ? new Prontuario() : prontuario;
+        pr.setConsulta(consulta);
+        pr.setMedico(consulta.getMedico());
+        pr.setDiagnostico(areaDiagnostico.getText().trim());
+        pr.setPrescricao(areaPrescricao.getText().trim());
+        pr.setObservacoes(areaObs.getText().trim());
+
+        if (prontuario == null) { controller.criar(pr);     JOptionPane.showMessageDialog(this, "Prontuário criado!"); }
+        else                   { controller.atualizar(pr); JOptionPane.showMessageDialog(this, "Prontuário actualizado!"); }
+        dispose();
+    }
+}
