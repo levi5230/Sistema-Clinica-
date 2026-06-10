@@ -1,0 +1,108 @@
+package com.clinica.view.forms;
+
+import com.clinica.controller.ProntuarioController;
+import com.clinica.model.Prontuario;
+import com.clinica.model.Usuario;
+
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.util.List;
+
+/**
+ * VIEW — Tela de Gestão de Prontuários.
+ */
+public class TelaProntuarios extends JFrame {
+
+    private JTable               tabela;
+    private DefaultTableModel    modeloTabela;
+    private ProntuarioController controller;
+    private Usuario              usuarioLogado;
+
+    public TelaProntuarios(Usuario usuario) {
+        this.usuarioLogado = usuario;
+        this.controller    = new ProntuarioController();
+        configurarJanela();
+        construirComponentes();
+        carregarTabela();
+    }
+
+    private void configurarJanela() {
+        setTitle("Gestão de Prontuários");
+        setSize(900, 500);
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    }
+
+    private void construirComponentes() {
+        JPanel painel = new JPanel(new BorderLayout(10, 10));
+        painel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JPanel painelTopo = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JButton btnNovo      = new JButton("Novo Prontuário");
+        JButton btnVer       = new JButton("Ver Detalhes");
+        JButton btnAtualizar = new JButton(" Actualizar");
+
+        btnNovo.addActionListener(e -> abrirFormulario(null));
+        btnVer.addActionListener(e -> verDetalhes());
+        btnAtualizar.addActionListener(e -> carregarTabela());
+
+        painelTopo.add(btnNovo);
+        painelTopo.add(btnVer);
+        painelTopo.add(btnAtualizar);
+
+        String[] colunas = {"ID", "Paciente", "Médico", "Diagnóstico", "Data Consulta"};
+        modeloTabela = new DefaultTableModel(colunas, 0) {
+            public boolean isCellEditable(int r, int c) { return false; }
+        };
+        tabela = new JTable(modeloTabela);
+        tabela.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        tabela.getColumnModel().getColumn(0).setMaxWidth(50);
+
+        painel.add(painelTopo, BorderLayout.NORTH);
+        painel.add(new JScrollPane(tabela), BorderLayout.CENTER);
+        add(painel);
+    }
+
+    private void carregarTabela() {
+        modeloTabela.setRowCount(0);
+        List<Prontuario> lista = controller.listarTodos();
+        for (Prontuario pr : lista) {
+            modeloTabela.addRow(new Object[]{
+                pr.getId(),
+                pr.getConsulta().getPaciente().getNome(),
+                pr.getMedico().getNome(),
+                pr.getDiagnostico(),
+                pr.getConsulta().getDataHora()
+            });
+        }
+    }
+
+    private void abrirFormulario(Prontuario prontuario) {
+        FormProntuario form = new FormProntuario(this, prontuario, controller);
+        form.setVisible(true);
+        carregarTabela();
+    }
+
+    private void verDetalhes() {
+        int linha = tabela.getSelectedRow();
+        if (linha < 0) { JOptionPane.showMessageDialog(this, "Seleccione um prontuário."); return; }
+        int id = (int) modeloTabela.getValueAt(linha, 0);
+        Prontuario pr = controller.buscarPorId(id);
+        if (pr != null) {
+            String detalhes = String.format(
+                "Paciente: %s\nMédico: %s\nData: %s\n\nDiagnóstico:\n%s\n\nPrescrição:\n%s\n\nObservações:\n%s",
+                pr.getConsulta().getPaciente().getNome(),
+                pr.getMedico().getNome(),
+                pr.getConsulta().getDataHora(),
+                pr.getDiagnostico(),
+                pr.getPrescricao(),
+                pr.getObservacoes()
+            );
+            JTextArea area = new JTextArea(detalhes, 15, 40);
+            area.setEditable(false);
+            area.setLineWrap(true);
+            JOptionPane.showMessageDialog(this, new JScrollPane(area), "Detalhes do Prontuário", JOptionPane.INFORMATION_MESSAGE);
+        }
+    }
+}
