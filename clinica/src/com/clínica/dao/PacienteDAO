@@ -1,0 +1,137 @@
+package com.clinica.dao;
+
+import com.clinica.connection.ConexaoDB;
+import com.clinica.model.Paciente;
+
+import java.sql.*;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * DAO — concentra todo o código JDBC para a entidade Paciente.
+ * Usa PreparedStatement para evitar SQL Injection.
+ */
+public class PacienteDAO implements DAOGenerico<Paciente> {
+
+    private Connection conn;
+
+    public PacienteDAO() {
+        this.conn = ConexaoDB.getConexao();
+    }
+
+    @Override
+    public void inserir(Paciente p) {
+        String sql = "INSERT INTO pacientes (nome, cpf, data_nascimento, sexo, telefone, email, " +
+                     "logradouro, bairro, cidade, historico_medico, ativo) VALUES (?,?,?,?,?,?,?,?,?,?,?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, p.getNome());
+            ps.setString(2, p.getCpf());
+            ps.setDate(3, Date.valueOf(p.getDataNascimento()));
+            ps.setString(4, p.getSexo());
+            ps.setString(5, p.getTelefone());
+            ps.setString(6, p.getEmail());
+            ps.setString(7, p.getLogradouro());
+            ps.setString(8, p.getBairro());
+            ps.setString(9, p.getCidade());
+            ps.setString(10, p.getHistoricoMedico());
+            ps.setBoolean(11, true);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Erro ao inserir paciente: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void atualizar(Paciente p) {
+        String sql = "UPDATE pacientes SET nome=?, cpf=?, data_nascimento=?, sexo=?, telefone=?, " +
+                     "email=?, logradouro=?, bairro=?, cidade=?, historico_medico=? WHERE id=?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, p.getNome());
+            ps.setString(2, p.getCpf());
+            ps.setDate(3, Date.valueOf(p.getDataNascimento()));
+            ps.setString(4, p.getSexo());
+            ps.setString(5, p.getTelefone());
+            ps.setString(6, p.getEmail());
+            ps.setString(7, p.getLogradouro());
+            ps.setString(8, p.getBairro());
+            ps.setString(9, p.getCidade());
+            ps.setString(10, p.getHistoricoMedico());
+            ps.setInt(11, p.getId());
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Erro ao atualizar paciente: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void deletar(int id) {
+        // Inativa o paciente em vez de apagar (boa prática)
+        String sql = "UPDATE pacientes SET ativo = 0 WHERE id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Erro ao inativar paciente: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public Paciente buscarPorId(int id) {
+        String sql = "SELECT * FROM pacientes WHERE id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return mapear(rs);
+        } catch (SQLException e) {
+            System.err.println("Erro ao buscar paciente: " + e.getMessage());
+        }
+        return null;
+    }
+
+    @Override
+    public List<Paciente> listarTodos() {
+        List<Paciente> lista = new ArrayList<>();
+        String sql = "SELECT * FROM pacientes WHERE ativo = 1 ORDER BY nome";
+        try (PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) lista.add(mapear(rs));
+        } catch (SQLException e) {
+            System.err.println("Erro ao listar pacientes: " + e.getMessage());
+        }
+        return lista;
+    }
+
+    /** Busca pacientes por nome ou CPF (para pesquisa) */
+    public List<Paciente> buscarPorNomeOuCpf(String termo) {
+        List<Paciente> lista = new ArrayList<>();
+        String sql = "SELECT * FROM pacientes WHERE ativo = 1 AND (nome LIKE ? OR cpf LIKE ?) ORDER BY nome";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, "%" + termo + "%");
+            ps.setString(2, "%" + termo + "%");
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) lista.add(mapear(rs));
+        } catch (SQLException e) {
+            System.err.println("Erro ao pesquisar pacientes: " + e.getMessage());
+        }
+        return lista;
+    }
+
+    /** Mapeia uma linha do ResultSet para um objeto Paciente */
+    private Paciente mapear(ResultSet rs) throws SQLException {
+        Paciente p = new Paciente();
+        p.setId(rs.getInt("id"));
+        p.setNome(rs.getString("nome"));
+        p.setCpf(rs.getString("cpf"));
+        p.setDataNascimento(rs.getDate("data_nascimento").toLocalDate());
+        p.setSexo(rs.getString("sexo"));
+        p.setTelefone(rs.getString("telefone"));
+        p.setEmail(rs.getString("email"));
+        p.setLogradouro(rs.getString("logradouro"));
+        p.setBairro(rs.getString("bairro"));
+        p.setCidade(rs.getString("cidade"));
+        p.setHistoricoMedico(rs.getString("historico_medico"));
+        p.setAtivo(rs.getBoolean("ativo"));
+        return p;
+    }
+}
