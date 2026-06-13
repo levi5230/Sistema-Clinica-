@@ -1,21 +1,17 @@
 package com.clinica;
 
+import com.clinica.util.TemaVisual;
 import com.clinica.view.forms.TelaLogin;
 
 import javax.swing.*;
 
 /**
- * PONTO DE ENTRADA — arranca o sistema.
+ * PONTO DE ENTRADA — arranca o sistema com tema visual
  */
 public class Main {
     public static void main(String[] args) {
-        // Garante que o Swing corre na thread correcta
         SwingUtilities.invokeLater(() -> {
-            try {
-                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            TemaVisual.aplicar(); // Aplica o tema antes de qualquer janela
             new TelaLogin().setVisible(true);
         });
     }
