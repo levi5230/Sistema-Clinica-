@@ -131,7 +131,7 @@ git clone https://github.com/levi5230/sistema-clinica-medica.git
 2-Gonçalves Pinto Domingos 
 3-Matondo Alberto Mauricio
 4-Ramos Brito Fernando
-5-André Mateus 
+5-António Neves José
 
 📍 Universidade Kimpa Vita — Uíge, Angola  
 © 2026 — Universidade Kimpa Vita
