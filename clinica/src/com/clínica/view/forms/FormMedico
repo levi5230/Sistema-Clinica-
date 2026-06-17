@@ -1,18 +1,19 @@
 package com.clinica.view.forms;
 
 import com.clinica.controller.MedicoController;
+import com.clinica.dao.MedicoDAO;
 import com.clinica.model.Medico;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.List;
 
-/**
- * VIEW — Formulário de cadastro/edição de Médico.
- */
 public class FormMedico extends JDialog {
 
-    private JTextField campoNome, campoCrm, campoEspecialidade, campoTelefone, campoEmail;
-    private JButton    btnSalvar, btnCancelar;
+    private JTextField    campoNome, campoCrm, campoTelefone, campoEmail;
+    private JComboBox<String> comboEspecialidade;
+    private JTextField    campoNovaEsp;
+    private JButton       btnSalvar, btnCancelar;
 
     private Medico           medico;
     private MedicoController controller;
@@ -21,7 +22,7 @@ public class FormMedico extends JDialog {
         super(pai, medico == null ? "Novo Médico" : "Editar Médico", true);
         this.medico     = medico;
         this.controller = controller;
-        setSize(420, 320);
+        setSize(460, 380);
         setLocationRelativeTo(pai);
         construirComponentes();
         if (medico != null) preencherCampos();
@@ -34,33 +35,42 @@ public class FormMedico extends JDialog {
         gbc.insets = new Insets(6, 6, 6, 6);
         gbc.fill   = GridBagConstraints.HORIZONTAL;
 
-        campoNome          = new JTextField(20);
-        campoCrm           = new JTextField(20);
-        campoEspecialidade = new JTextField(20);
-        campoTelefone      = new JTextField(20);
-        campoEmail         = new JTextField(20);
+        campoNome     = new JTextField(20);
+        campoCrm      = new JTextField(20);
+        campoTelefone = new JTextField(20);
+        campoEmail    = new JTextField(20);
+        campoNovaEsp  = new JTextField(20);
 
-        String[][] campos = {
-            {"Nome: *", ""}, {"CRM: *", ""}, {"Especialidade: *", ""},
-            {"Telefone:", ""}, {"Email:", ""}
-        };
-        JTextField[] inputs = {campoNome, campoCrm, campoEspecialidade, campoTelefone, campoEmail};
+        // Carregar especialidades existentes + opção para criar nova
+        List<String> esps = new MedicoDAO().listarEspecialidades();
+        esps.add(0, "-- Seleccione --");
+        esps.add("+ Nova especialidade...");
+        comboEspecialidade = new JComboBox<>(esps.toArray(new String[0]));
 
-        for (int i = 0; i < inputs.length; i++) {
-            gbc.gridx = 0; gbc.gridy = i; gbc.gridwidth = 1;
-            p.add(new JLabel(campos[i][0]), gbc);
-            gbc.gridx = 1;
-            p.add(inputs[i], gbc);
-        }
+        // Quando selecciona "Nova especialidade", mostra o campo de texto
+        campoNovaEsp.setVisible(false);
+        comboEspecialidade.addActionListener(e -> {
+            boolean nova = "+ Nova especialidade...".equals(comboEspecialidade.getSelectedItem());
+            campoNovaEsp.setVisible(nova);
+            revalidate(); repaint();
+        });
 
-        btnSalvar   = new JButton(" Salvar");
+        int linha = 0;
+        add(p, gbc, "Nome: *",           campoNome,          linha++);
+        add(p, gbc, "CRM: *",            campoCrm,           linha++);
+        add(p, gbc, "Especialidade: *",  comboEspecialidade, linha++);
+        add(p, gbc, "Nova especialidade:",campoNovaEsp,       linha++);
+        add(p, gbc, "Telefone:",         campoTelefone,      linha++);
+        add(p, gbc, "Email:",            campoEmail,         linha++);
+
+        btnSalvar   = new JButton("💾 Salvar");
         btnCancelar = new JButton("Cancelar");
         btnSalvar.setBackground(new Color(46, 204, 113));
         btnSalvar.setForeground(Color.WHITE);
 
         JPanel pb = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         pb.add(btnCancelar); pb.add(btnSalvar);
-        gbc.gridx = 0; gbc.gridy = inputs.length; gbc.gridwidth = 2;
+        gbc.gridx=0; gbc.gridy=linha; gbc.gridwidth=2;
         p.add(pb, gbc);
 
         btnSalvar.addActionListener(e -> salvar());
@@ -68,12 +78,19 @@ public class FormMedico extends JDialog {
         add(p);
     }
 
+    private void add(JPanel p, GridBagConstraints gbc, String label, Component campo, int linha) {
+        gbc.gridwidth=1; gbc.gridx=0; gbc.gridy=linha;
+        p.add(new JLabel(label), gbc);
+        gbc.gridx=1;
+        p.add(campo, gbc);
+    }
+
     private void preencherCampos() {
         campoNome.setText(medico.getNome());
         campoCrm.setText(medico.getCrm());
-        campoEspecialidade.setText(medico.getEspecialidade());
         campoTelefone.setText(medico.getTelefone());
         campoEmail.setText(medico.getEmail());
+        comboEspecialidade.setSelectedItem(medico.getEspecialidade());
     }
 
     private void salvar() {
@@ -81,15 +98,30 @@ public class FormMedico extends JDialog {
             JOptionPane.showMessageDialog(this, "Nome e CRM são obrigatórios.");
             return;
         }
+
+        String especialidade;
+        if ("+ Nova especialidade...".equals(comboEspecialidade.getSelectedItem())) {
+            especialidade = campoNovaEsp.getText().trim();
+            if (especialidade.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Introduza o nome da nova especialidade.");
+                return;
+            }
+        } else if ("-- Seleccione --".equals(comboEspecialidade.getSelectedItem())) {
+            JOptionPane.showMessageDialog(this, "Seleccione uma especialidade.");
+            return;
+        } else {
+            especialidade = (String) comboEspecialidade.getSelectedItem();
+        }
+
         Medico m = medico == null ? new Medico() : medico;
         m.setNome(campoNome.getText().trim());
         m.setCrm(campoCrm.getText().trim());
-        m.setEspecialidade(campoEspecialidade.getText().trim());
+        m.setEspecialidade(especialidade);
         m.setTelefone(campoTelefone.getText().trim());
         m.setEmail(campoEmail.getText().trim());
 
-        if (medico == null) { controller.cadastrar(m); JOptionPane.showMessageDialog(this, "Médico cadastrado!"); }
-        else                { controller.atualizar(m);  JOptionPane.showMessageDialog(this, "Médico actualizado!"); }
+        if (medico == null) { controller.cadastrar(m); JOptionPane.showMessageDialog(this, "Médico cadastrado com sucesso!"); }
+        else                { controller.atualizar(m);  JOptionPane.showMessageDialog(this, "Médico actualizado com sucesso!"); }
         dispose();
     }
 }
